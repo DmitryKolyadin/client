@@ -12,6 +12,7 @@ import {PageConstructor, PageConstructorProvider} from '@gravity-ui/page-constru
 import {useContent} from '../ConstructorPage/useContent';
 import {Suggest} from '../Search/Suggest';
 import {useNavigation} from '../ConstructorPage/useNavigation';
+import {VersionsProvider, useDocumentationVersions} from '../VersionsSelect';
 
 import {PageProvider} from './PageContext';
 import {CustomPage} from './CustomPage';
@@ -30,7 +31,14 @@ export function Page({data, props, controls, embed}: PageProps) {
     const {theme, fullScreen} = props;
 
     const analytics = useAnalytics();
-    const navigation = useNavigation(data, controls, CustomControls, Suggest);
+    const versions = useDocumentationVersions(Boolean(embed), controls.lang);
+    const navigation = useNavigation(
+        data,
+        controls,
+        CustomControls,
+        Suggest,
+        Boolean(versions.current),
+    );
     const content = useContent(data as DocContentPageData, CustomPage);
     const headerControls = useMemo(() => {
         if (navigation.withControls) {
@@ -86,22 +94,24 @@ export function Page({data, props, controls, embed}: PageProps) {
     }, [data, hasLayout, headerControls, props, embed]);
 
     return (
-        <PageProvider value={pageContext}>
-            <PageConstructorProvider
-                theme={theme}
-                projectSettings={{disableCompress: true}}
-                ssrConfig={{
-                    isServer: Boolean(process.env.BROWSER),
-                }}
-                analytics={pageConstructorAnalytics}
-            >
-                <PageConstructor
-                    custom={custom}
-                    content={content.layout}
-                    navigation={fullScreen ? undefined : navigation.layout}
-                />
-            </PageConstructorProvider>
-        </PageProvider>
+        <VersionsProvider state={versions} mobile={controls.mobileView}>
+            <PageProvider value={pageContext}>
+                <PageConstructorProvider
+                    theme={theme}
+                    projectSettings={{disableCompress: true}}
+                    ssrConfig={{
+                        isServer: Boolean(process.env.BROWSER),
+                    }}
+                    analytics={pageConstructorAnalytics}
+                >
+                    <PageConstructor
+                        custom={custom}
+                        content={content.layout}
+                        navigation={fullScreen ? undefined : navigation.layout}
+                    />
+                </PageConstructorProvider>
+            </PageProvider>
+        </VersionsProvider>
     );
 }
 

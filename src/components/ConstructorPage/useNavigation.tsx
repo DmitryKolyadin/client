@@ -15,6 +15,7 @@ import {
 
 import {HEADER_HEIGHT} from '../../constants';
 import {useRouter, useSearch} from '../';
+import {VersionsSelect} from '../VersionsSelect';
 
 function findItem(right: NavigationItemModel[], left: NavigationItemModel[], type: string) {
     return right.some((item) => item.type === type) || left.some((item) => item.type === type);
@@ -28,12 +29,15 @@ const EmptyNavigation = {} as NavigationData;
 const EmptyHeader = {} as NavigationData['header'];
 const EmptyLeftItems = [] as NavigationItemModel[];
 const EmptyRightItems = [] as NavigationItemModel[];
+const searchItem = {type: 'search'} as unknown as NavigationItemModel;
+const versionsItem = {type: 'documentation-versions'} as unknown as NavigationItemModel;
 
 export const useNavigation = (
     data: DocBasePageData<WithNavigation>,
     controls: HeaderControlsProps,
     CustomControls: ComponentType<{}>,
     CustomSuggest: () => ReactNode,
+    withVersions: boolean,
     viewerInterface?: ViewerInterface,
 ): {
     custom: {
@@ -42,6 +46,7 @@ export const useNavigation = (
         MobileDropdown: typeof MobileDropdown;
         label: typeof NavigationLabel;
         dropdown: typeof NavigationDropdown;
+        'documentation-versions': typeof VersionsSelect;
     };
     layout?: {
         // PageConstructor gets an empty header; CustomNavigation renders the real items.
@@ -54,8 +59,11 @@ export const useNavigation = (
     const {toc} = data;
     const navigation = toc.navigation || EmptyNavigation;
     const {header = EmptyHeader, logo} = navigation as NavigationDataWithOptionalLogo;
-    const {leftItems = EmptyLeftItems, rightItems = EmptyRightItems} =
-        header as NavigationData['header'];
+    const {
+        leftItems = EmptyLeftItems,
+        rightItems = EmptyRightItems,
+        customMobileHeaderItems,
+    } = header;
 
     const withControls = findItem(rightItems, leftItems, 'controls');
     const withSearch = findItem(rightItems, leftItems, 'search');
@@ -63,19 +71,15 @@ export const useNavigation = (
     const search = useSearch();
     const router = useRouter();
 
-    if (search && !withSearch) {
-        rightItems.unshift({type: 'search'} as unknown as NavigationItemModel);
-    }
-
-    const navigationData = useMemo(
-        () => ({
+    const navigationData = useMemo(() => {
+        const mobileItems = customMobileHeaderItems ?? [searchItem];
+        return {
             withBorder: true,
-            leftItems: leftItems,
-            rightItems: rightItems,
-            customMobileHeaderItems: [{type: 'search'} as unknown as NavigationItemModel],
-        }),
-        [leftItems, rightItems],
-    );
+            leftItems: withVersions ? [versionsItem, ...leftItems] : leftItems,
+            rightItems: search && !withSearch ? [searchItem, ...rightItems] : rightItems,
+            customMobileHeaderItems: withVersions ? [versionsItem, ...mobileItems] : mobileItems,
+        };
+    }, [leftItems, rightItems, customMobileHeaderItems, search, withSearch, withVersions]);
     const navigationTocData = useMemo(
         () => ({
             toc,
@@ -95,7 +99,7 @@ export const useNavigation = (
 
     const layout = useMemo(
         () =>
-            EmptyNavigation === navigation
+            EmptyNavigation === navigation && !withVersions
                 ? undefined
                 : {
                       header: {
@@ -111,7 +115,7 @@ export const useNavigation = (
                       ),
                       logo: {...logo, icon: logo?.icon ?? ''},
                   },
-        [navigationData, navigationTocData, mobileControlsData, logo, navigation],
+        [navigationData, navigationTocData, mobileControlsData, logo, navigation, withVersions],
     );
 
     const config = useMemo(
@@ -122,6 +126,7 @@ export const useNavigation = (
                 MobileDropdown: MobileDropdown,
                 label: NavigationLabel,
                 dropdown: NavigationDropdown,
+                'documentation-versions': VersionsSelect,
             },
             layout,
             withControls,
