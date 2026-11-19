@@ -72,11 +72,12 @@ export const useNavigation = (
     const router = useRouter();
 
     const navigationData = useMemo(() => {
+        const desktopItems = search && !withSearch ? [searchItem, ...rightItems] : rightItems;
         const mobileItems = customMobileHeaderItems ?? [searchItem];
         return {
             withBorder: true,
-            leftItems: withVersions ? [versionsItem, ...leftItems] : leftItems,
-            rightItems: search && !withSearch ? [searchItem, ...rightItems] : rightItems,
+            leftItems,
+            rightItems: withVersions ? [versionsItem, ...desktopItems] : desktopItems,
             customMobileHeaderItems: withVersions ? [versionsItem, ...mobileItems] : mobileItems,
         };
     }, [leftItems, rightItems, customMobileHeaderItems, search, withSearch, withVersions]);
