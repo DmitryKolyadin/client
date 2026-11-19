@@ -47,21 +47,46 @@ export function useDocumentationVersions(embed: boolean, lang: string) {
         }
         setCurrentId(id);
 
-        const controller = new AbortController();
-        fetch('/versions.json', {cache: 'no-store', signal: controller.signal})
-            .then((response) => (response.ok ? response.json() : null))
-            .then((value) => {
-                if (!controller.signal.aborted) {
-                    setRegistry(parseVersionsRegistry(value));
-                }
-            })
-            .catch(() => {
-                if (!controller.signal.aborted) {
-                    setRegistry(null);
-                }
-            });
+        let request: AbortController | undefined;
+        let lastRefreshAt = -Infinity;
+        const refresh = () => {
+            const now = performance.now();
+            // A tab activation can fire both focus and visibilitychange.
+            if (document.visibilityState !== 'visible' || request || now - lastRefreshAt < 500) {
+                return;
+            }
+            lastRefreshAt = now;
+            const controller = new AbortController();
+            request = controller;
+            const timeout = window.setTimeout(() => controller.abort(), 10000);
 
-        return () => controller.abort();
+            fetch('/versions.json', {cache: 'no-store', signal: controller.signal})
+                .then((response) => (response.ok ? response.json() : null))
+                .then((value) => {
+                    if (!controller.signal.aborted) {
+                        const parsed = parseVersionsRegistry(value);
+                        if (parsed) {
+                            setRegistry(parsed);
+                        }
+                    }
+                })
+                .catch(() => {
+                    // An unavailable registry must not replace the last valid choices.
+                })
+                .finally(() => {
+                    window.clearTimeout(timeout);
+                    request = undefined;
+                });
+        };
+
+        refresh();
+        window.addEventListener('focus', refresh);
+        document.addEventListener('visibilitychange', refresh);
+        return () => {
+            request?.abort();
+            window.removeEventListener('focus', refresh);
+            document.removeEventListener('visibilitychange', refresh);
+        };
     }, [embed]);
 
     useEffect(() => {
