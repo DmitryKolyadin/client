@@ -62,6 +62,7 @@ export interface AppProps {
     lang: `${Lang}` | Lang;
     langs: (`${Lang}` | Lang)[];
     router: RouterConfig;
+    embed?: boolean;
     search?: SearchConfig;
     analytics?: AnalyticsConfig;
     feedback?: FeedbackConfig;
@@ -88,8 +89,18 @@ export type DocInnerProps<Data extends PageData = PageData> = {
 export type {DocLeadingPageData, DocPageData};
 
 function AppBase(props: AppProps): ReactElement {
-    const {data, router, lang, langs, search, analytics, feedback, viewerInterface, neuroExpert} =
-        props;
+    const {
+        data,
+        router,
+        lang,
+        langs,
+        search,
+        analytics,
+        feedback,
+        viewerInterface,
+        neuroExpert,
+        embed,
+    } = props;
     const settings = useSettings();
     const langData = useLangs(props);
     const mobileView = useMobile();
@@ -110,7 +121,8 @@ function AppBase(props: AppProps): ReactElement {
         return hooks;
     }, []);
 
-    const {theme, textSize, wideFormat, fullScreen, showMiniToc} = settings;
+    const {theme, textSize, wideFormat, showMiniToc} = settings;
+    const fullScreen = embed || settings.fullScreen;
 
     const onSendFeedback = useFeedback({
         feedbackUrl: feedback?.url,
@@ -170,7 +182,12 @@ function AppBase(props: AppProps): ReactElement {
                                 <InterfaceProvider interface={viewerInterface || {}}>
                                     <RenderBodyHooksContext.Provider value={renderHooks}>
                                         <HeaderControlsProvider value={controls}>
-                                            <Page data={data} props={page} controls={controls} />
+                                            <Page
+                                                data={data}
+                                                props={page}
+                                                controls={controls}
+                                                embed={embed}
+                                            />
                                         </HeaderControlsProvider>
                                     </RenderBodyHooksContext.Provider>
                                     {analytics?.gtm && (

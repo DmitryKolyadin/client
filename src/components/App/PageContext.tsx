@@ -5,7 +5,7 @@ import type {Settings} from '../../utils';
 
 import {createContext, useContext} from 'react';
 
-export type CustomPageProps = Settings & Partial<HeaderControlsProps>;
+export type CustomPageProps = Settings & Partial<HeaderControlsProps> & {hideToc?: boolean};
 
 export interface PageContextProps {
     data: DocBasePageData & PageData;

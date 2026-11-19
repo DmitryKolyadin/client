@@ -23,9 +23,10 @@ type PageProps<T extends {} = {}> = {
         router: AppProps['router'];
     } & Settings;
     controls: HeaderControlsProps;
+    embed?: boolean;
 };
 
-export function Page({data, props, controls}: PageProps) {
+export function Page({data, props, controls, embed}: PageProps) {
     const {theme, fullScreen} = props;
 
     const analytics = useAnalytics();
@@ -75,10 +76,14 @@ export function Page({data, props, controls}: PageProps) {
     }, [navigation, content]);
     const hasLayout = Boolean(navigation.layout);
     const pageContext = useMemo<PageContextProps>(() => {
-        const pageProps = {...props, ...headerControls};
+        const pageProps = {
+            ...props,
+            ...headerControls,
+            ...(embed && {fullScreen: true, showMiniToc: false, hideToc: true}),
+        };
 
         return {data, props: pageProps, hasLayout};
-    }, [data, hasLayout, headerControls, props]);
+    }, [data, hasLayout, headerControls, props, embed]);
 
     return (
         <PageProvider value={pageContext}>

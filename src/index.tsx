@@ -6,6 +6,7 @@ import type {DocAnalytics, DocInnerProps, DocLeadingPageData, DocPageData} from 
 import {createRoot, hydrateRoot} from 'react-dom/client';
 
 import {App} from './components/App';
+import {preserveEmbedLinks} from './interceptors/embed-links';
 import {setRootClasses} from './interceptors/fast-class-applier';
 import {createAnalyticsProps} from './utils';
 
@@ -32,6 +33,7 @@ if (!isDocInnerProps(data)) {
 }
 
 const props = data as DocInnerProps;
+const embed = new URLSearchParams(window.location.search).get('embed') === 'true';
 
 if (window.STATIC_CONTENT && props.data.leading !== true) {
     const html = root.querySelector<HTMLElement>('[data-html-id="main"]')?.innerHTML;
@@ -47,9 +49,15 @@ analyticsService.init();
 
 setRootClasses(props);
 
-const app = <App {...props} analytics={analyticsConfig} analyticsService={analyticsService} />;
+if (embed) {
+    preserveEmbedLinks(root, new URL('./', document.baseURI));
+}
 
-if (window.STATIC_CONTENT) {
+const app = (
+    <App {...props} embed={embed} analytics={analyticsConfig} analyticsService={analyticsService} />
+);
+
+if (window.STATIC_CONTENT && !embed) {
     hydrateRoot(root, app);
 } else {
     createRoot(root).render(app);
