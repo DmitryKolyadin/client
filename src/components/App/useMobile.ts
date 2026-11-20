@@ -1,21 +1,17 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useSyncExternalStore} from 'react';
 
 import {getMobileView} from '../../utils';
 
+function subscribe(onResize: () => void) {
+    window.addEventListener('resize', onResize);
+
+    return () => window.removeEventListener('resize', onResize);
+}
+
+function getServerMobileView() {
+    return false;
+}
+
 export function useMobile() {
-    const [mobileView, setMobileView] = useState<boolean>(getMobileView());
-
-    const onResizeHandler = useCallback(() => {
-        setMobileView(getMobileView());
-    }, []);
-
-    useEffect(onResizeHandler, [onResizeHandler]);
-
-    useEffect(() => {
-        window.addEventListener('resize', onResizeHandler);
-
-        return () => window.removeEventListener('resize', onResizeHandler);
-    }, [onResizeHandler]);
-
-    return mobileView;
+    return useSyncExternalStore(subscribe, getMobileView, getServerMobileView);
 }
